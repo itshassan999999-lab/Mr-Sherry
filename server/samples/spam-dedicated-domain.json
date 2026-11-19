@@ -1,0 +1,10 @@
+{
+  "mode": "messages",
+  "agency": "thehub.mastermind.com",
+  "messages": [
+    { "role": "bot", "text": "Hi! I'm the virtual assistant. What can I help you with today?" },
+    { "role": "customer", "text": "My campaign emails are all landing in spam since yesterday. I'm sending from sarah@brightpathcoaching.com to about 3,000 contacts." },
+    { "role": "agent", "text": "Hi Sarah, thanks for reaching out! Please keep this window open. Could you tell me which sub-account this is for?" },
+    { "role": "customer", "text": "It's the Bright Path Coaching sub-account. I set up a dedicated domain last week, mail.brightpathcoaching.com. You can call me on +1 (415) 555-0132 if easier." }
+  ]
+}

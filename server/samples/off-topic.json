@@ -1,0 +1,6 @@
+{
+  "mode": "messages",
+  "messages": [
+    { "role": "customer", "text": "Can you recommend a good chocolate cake recipe for my daughter's birthday?" }
+  ]
+}

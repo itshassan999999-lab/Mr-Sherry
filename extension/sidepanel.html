@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Reply Assistant</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <iframe id="app" title="Reply Assistant" allow="clipboard-write" hidden></iframe>
+  <div id="offline" class="offline" hidden>
+    <img src="icons/48.png" alt="" width="40" height="40">
+    <h1>Can't reach the assistant server</h1>
+    <p id="offlineDetail"></p>
+    <ol>
+      <li>Start the server: open a terminal in the <code>server</code> folder and run <code>npm start</code>.</li>
+      <li>Check the server address in Settings.</li>
+    </ol>
+    <div class="row">
+      <button id="retry" class="primary">Try again</button>
+      <button id="openSettings">Settings</button>
+    </div>
+  </div>
+  <script src="settings.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

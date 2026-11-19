@@ -1,0 +1,36 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Inbox</title>
+<style>
+ body{margin:0;font:14px sans-serif;display:flex;height:100vh}
+ .nav{width:60px;background:#222;color:#fff}
+ .list{width:260px;border-right:1px solid #ddd;overflow-y:auto}
+ .list .item{padding:12px;border-bottom:1px solid #eee}
+ .center{flex:1;display:flex;flex-direction:column}
+ .head{padding:12px;border-bottom:1px solid #ddd}
+ .msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+ .row{display:flex}
+ .row.out{justify-content:flex-end}
+ .bubble{max-width:60%;padding:8px 12px;border-radius:12px;background:#eee}
+ .out .bubble{background:#4f46e5;color:#fff}
+ .composer{border-top:1px solid #ddd;padding:12px}
+ .composer [contenteditable]{min-height:60px;border:1px solid #ccc;padding:8px;width:95%}
+ .side{width:280px;border-left:1px solid #ddd;padding:12px}
+</style></head>
+<body>
+ <div class="nav">Menu</div>
+ <div class="list">
+   <input placeholder="Search conversations" style="width:90%;margin:8px">
+   <div class="item">INBOX-LIST: John Doe — Need help with calendar</div>
+   <div class="item">INBOX-LIST: Mary — Stripe question</div>
+ </div>
+ <div class="center">
+   <div class="head">Sarah Miller · thehub.mastermind.com</div>
+   <div class="msgs" id="msgs">
+     <div class="row in"><div class="bubble">My campaign emails are landing in spam since yesterday.</div></div>
+     <div class="row out"><div class="bubble">Thanks for reaching out! Please keep this window open. Which sub-account is this?</div></div>
+     <div class="row in"><div class="bubble">Bright Path Coaching. I set up a dedicated domain last week.</div></div>
+   </div>
+   <div class="composer"><div contenteditable="true" aria-label="Type a message"></div><button>Send</button></div>
+ </div>
+ <div class="side">CONTACT-PANEL: sarah@example.com · +1 415 555 0132 · Notes: VIP</div>
+</body></html>

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Reply Assistant settings</title>
+  <link rel="stylesheet" href="sidepanel.css">
+  <style>
+    body { max-width: 520px; margin: 32px auto; padding: 0 16px; }
+    label { display: block; font-weight: 600; margin: 16px 0 4px; }
+    input { width: 100%; box-sizing: border-box; font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: inherit; }
+    .hint { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
+    #msg { margin-left: 8px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <h1 style="font-size:18px">Reply Assistant settings</h1>
+  <label for="serverUrl">Server address</label>
+  <input id="serverUrl" placeholder="http://127.0.0.1:8787">
+  <p class="hint">Where the assistant server runs. Keep http://127.0.0.1:8787 when it runs on this computer.</p>
+  <label for="accessToken">Access token</label>
+  <input id="accessToken" type="password" autocomplete="off">
+  <p class="hint">Only if your server has ACCESS_TOKEN set (required for a shared, hosted server).</p>
+  <div class="row"><button id="save" class="primary">Save and test</button><span id="msg"></span></div>
+  <script src="settings.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "_help": "How the extension finds the open conversation on the support site. Changes here reach every agent on their next click, no extension update needed. Leave a selector empty to use auto-detection. See docs/reader-setup.md.",
+  "allowedHosts": ["app.modalsupport.com"],
+  "selectors": {
+    "conversation": "",
+    "message": "",
+    "messageText": "",
+    "agentMessage": "",
+    "botMessage": "",
+    "composer": "",
+    "agency": ""
+  },
+  "agentNames": [],
+  "agentSide": "right",
+  "maxChars": 24000,
+  "useSelection": true
+}

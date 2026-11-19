@@ -1,0 +1,17 @@
+{
+  "name": "support-reply-assistant-server",
+  "version": "1.0.0",
+  "minExtensionVersion": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Drafts grounded, white-label replies for support agents. Serves the side-panel UI and API for the extension.",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js",
+    "try": "node scripts/try-sample.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0"
+  }
+}
