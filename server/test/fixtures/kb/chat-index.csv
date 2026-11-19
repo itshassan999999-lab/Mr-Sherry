@@ -1,0 +1,4 @@
+record_id,date,agency_domain,topic,chat_type,csat,fcr,first_question,agent_answer
+recSPAM001,2026-10-01,a.com,email_deliverability,HumanChat,5,True,my emails are landing in spam after dedicated domain setup,"Please check Settings > Email Services > Dedicated Domain and IP, all records must be verified and add a DMARC record, then warm up slowly."
+recSPAM002,2026-10-02,a.com,email_deliverability,HumanChat,1,False,all my emails go to spam,"Sorry about that."
+recCAL0001,2026-10-03,a.com,calendar_booking,HumanChat,5,True,my calendar shows no availability,"Check the calendar availability settings and the time zone."

@@ -1,0 +1,6 @@
+{
+  "mode": "messages",
+  "messages": [
+    { "role": "customer", "text": "Hi, I was charged twice this month and I want to cancel my subscription. Can you refund the extra charge?" }
+  ]
+}

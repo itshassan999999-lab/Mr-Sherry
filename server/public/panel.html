@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reply Assistant</title>
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><img src="logo.svg" alt="" width="22" height="22"><span>Reply Assistant</span></div>
+    <div class="topbar-right">
+      <span id="conn" class="pill">Connecting…</span>
+      <button id="settingsBtn" class="icon-btn" title="Settings" hidden aria-label="Settings">
+        <svg viewBox="0 0 20 20" width="16" height="16"><path fill="currentColor" d="M11.3 1.5l.4 2.2c.5.2 1 .5 1.4.8l2.1-.8 1.3 2.3-1.7 1.4c.1.5.1 1.1 0 1.6l1.7 1.4-1.3 2.3-2.1-.8c-.4.3-.9.6-1.4.8l-.4 2.2H8.7l-.4-2.2c-.5-.2-1-.5-1.4-.8l-2.1.8-1.3-2.3 1.7-1.4a5 5 0 0 1 0-1.6L3.5 6l1.3-2.3 2.1.8c.4-.3.9-.6 1.4-.8l.4-2.2zM10 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <div id="banner" class="banner" hidden></div>
+
+    <section class="controls">
+      <button id="suggestBtn" class="btn primary">
+        <span class="btn-label">Suggest reply</span>
+        <span class="spinner" aria-hidden="true"></span>
+      </button>
+      <button id="pasteToggle" class="btn ghost" type="button">Paste chat instead</button>
+    </section>
+
+    <div id="readLine" class="read-line" hidden>
+      <span id="readText"></span>
+      <span class="read-actions">
+        <button id="viewRead" class="link">View</button>
+        <button id="pickArea" class="link" hidden>Change chat area</button>
+      </span>
+    </div>
+    <pre id="readView" class="read-view" hidden></pre>
+
+    <section id="pasteBox" class="card" hidden>
+      <label for="pasteText" class="label">Paste the conversation</label>
+      <textarea id="pasteText" rows="7" placeholder="Customer: Hi, my emails are going to spam…&#10;Agent: Thanks for reaching out…"></textarea>
+      <p class="hint">Start lines with "Customer:" and "Agent:" if you can. Personal data is masked before anything is sent.</p>
+    </section>
+
+    <p id="status" class="status" role="status"></p>
+
+    <section id="areaHelp" class="card notice" hidden>
+      <h3>Couldn't find the conversation</h3>
+      <p>To avoid reading the whole page, the assistant only reads the open chat. Click <b>Point to chat</b>, then click the area that shows the messages. It's remembered for next time.</p>
+      <p class="hint">Or highlight the messages on the page and click Suggest reply again.</p>
+      <button id="pickArea2" class="btn primary">Point to chat</button>
+    </section>
+
+    <section id="skeleton" class="card" hidden>
+      <div class="sk sk-title"></div><div class="sk"></div><div class="sk"></div><div class="sk short"></div>
+    </section>
+
+    <section id="manual" class="card" hidden>
+      <h3>Manual mode</h3>
+      <p class="hint">1. Copy the prompt. 2. Paste it into a new chat at claude.ai. 3. Paste the full answer back below and click Check answer.</p>
+      <div class="row"><button id="copyPrompt" class="btn">Copy prompt</button><a href="https://claude.ai/new" target="_blank" rel="noopener" class="link">Open claude.ai</a></div>
+      <textarea id="pastedAnswer" rows="5" placeholder="Paste the answer here (keep the <status>, <reply>, <evidence> parts)"></textarea>
+      <button id="checkAnswer" class="btn primary">Check answer</button>
+    </section>
+
+    <section id="result" hidden>
+      <div class="card reply-card">
+        <div class="card-head">
+          <span id="badge" class="badge"></span>
+          <span id="topics" class="muted small"></span>
+        </div>
+        <div id="escalation" class="callout danger" hidden></div>
+        <ul id="issues" class="callout warn" hidden></ul>
+        <textarea id="reply" rows="9" aria-label="Suggested reply"></textarea>
+        <div class="actions">
+          <button id="insertBtn" class="btn primary" hidden>Insert into reply box</button>
+          <button id="copyBtn" class="btn">Copy</button>
+          <span id="actionNote" class="muted small"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Notes for you</h3>
+        <div id="notes" class="notes"></div>
+      </div>
+
+      <div class="card">
+        <h3>Why this answer</h3>
+        <ol id="evidence" class="evidence"></ol>
+        <p id="noEvidence" class="muted small" hidden>No sourced steps in this reply.</p>
+        <details class="sources">
+          <summary>All sources searched (<span id="sourceCount">0</span>)</summary>
+          <ul id="sources"></ul>
+        </details>
+      </div>
+
+      <p id="meta" class="meta"></p>
+    </section>
+  </main>
+
+  <script src="panel.js"></script>
+</body>
+</html>
