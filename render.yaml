@@ -1,6 +1,6 @@
 # One-click hosting on Render (https://render.com). Every push to main redeploys automatically.
-# Free setup: Render's free plan + Groq's free API. Render asks for GROQ_API_KEY when you
-# create the service; ACCESS_TOKEN is generated for you.
+# Free setup: Render's free plan + Google Gemini's free tier, with Groq's free tier as automatic
+# backup. Render asks for GEMINI_API_KEY (and optionally GROQ_API_KEY); ACCESS_TOKEN is generated.
 services:
   - type: web
     name: mr-sherry-assistant
@@ -15,10 +15,16 @@ services:
         value: "22"
       - key: HOST
         value: 0.0.0.0
-      # groq = free. Add GEMINI_API_KEY and set "groq,gemini" to fall back when Groq's free limit is hit.
+      # Gemini first; Groq is used when Gemini's free limit is hit (skipped if no Groq key).
       - key: PROVIDER
-        value: groq
+        value: gemini,groq
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
       - key: ACCESS_TOKEN
         generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
       - key: GROQ_API_KEY
         sync: false

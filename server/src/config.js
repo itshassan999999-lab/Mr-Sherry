@@ -32,7 +32,7 @@ export const config = {
   // api = Anthropic API key | claude-code = your logged-in Claude Code | manual = copy a prompt into claude.ai
   // groq / gemini = free-tier hosted models | ollama = a model on your own computer
   // api = Anthropic API key (paid) | claude-code = your logged-in Claude Code | manual = copy a prompt into claude.ai
-  provider: env.PROVIDER || (env.GROQ_API_KEY ? "groq" : env.GEMINI_API_KEY ? "gemini" : env.ANTHROPIC_API_KEY ? "api" : "claude-code"),
+  provider: env.PROVIDER || (env.GEMINI_API_KEY || env.GROQ_API_KEY ? "gemini,groq" : env.ANTHROPIC_API_KEY ? "api" : "claude-code"),
   // For groq / gemini / ollama / openai-compatible: which model, and (optionally) a different endpoint.
   llmModel: env.LLM_MODEL || "",
   llmBaseUrl: env.LLM_BASE_URL || "",

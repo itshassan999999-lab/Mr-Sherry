@@ -1,6 +1,6 @@
 {
   "name": "support-reply-assistant-server",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "minExtensionVersion": "1.0.0",
   "private": true,
   "type": "module",

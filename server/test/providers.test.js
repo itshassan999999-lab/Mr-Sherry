@@ -43,3 +43,23 @@ test("ollama: no key, local address", async () => {
   assert.equal(seen.url, "http://127.0.0.1:11434/v1/chat/completions");
   assert.equal(seen.init.headers.Authorization, undefined);
 });
+
+test("gemini,groq: each provider keeps its own model, and a provider without a key is skipped", async () => {
+  config.provider = "gemini,groq"; config.llmModel = "should-not-apply";
+  process.env.GEMINI_API_KEY = "g_test"; delete process.env.GROQ_API_KEY; delete process.env.LLM_API_KEY;
+  const models = [];
+  await assert.rejects(generate("hi", { fetchImpl: async (url, init) => {
+    models.push([url.includes("groq") ? "groq" : "gemini", JSON.parse(init.body).model]);
+    return { status: 429, ok: false, json: async () => ({}) };
+  } }), /free limit/);
+  assert.deepEqual(models, [["gemini", "gemini-2.5-flash"]]);
+  process.env.GROQ_API_KEY = "gsk_test"; process.env.GROQ_MODEL = "custom-groq";
+  models.length = 0;
+  const r = await generate("hi", { fetchImpl: async (url, init) => {
+    models.push([url.includes("groq") ? "groq" : "gemini", JSON.parse(init.body).model]);
+    return url.includes("groq") ? ok("from groq") : { status: 429, ok: false, json: async () => ({}) };
+  } });
+  assert.equal(r.text, "from groq");
+  assert.deepEqual(models, [["gemini", "gemini-2.5-flash"], ["groq", "custom-groq"]]);
+  delete process.env.GROQ_MODEL; config.llmModel = "";
+});
