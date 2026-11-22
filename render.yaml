@@ -1,0 +1,26 @@
+# One-click hosting on Render (https://render.com). Every push to main redeploys automatically.
+# Render asks for ANTHROPIC_API_KEY when you create the service; ACCESS_TOKEN is generated for you.
+services:
+  - type: web
+    name: mr-sherry-assistant
+    runtime: node
+    plan: starter            # always on; "free" works too but sleeps after 15 idle minutes
+    buildCommand: cd server && npm ci
+    startCommand: cd server && node --max-old-space-size=320 src/server.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: HOST
+        value: 0.0.0.0
+      - key: PROVIDER
+        value: api
+      - key: CLAUDE_MODEL
+        value: claude-opus-5-5
+      - key: CLAUDE_EFFORT
+        value: medium
+      - key: ACCESS_TOKEN
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false

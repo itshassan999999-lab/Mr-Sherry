@@ -1,6 +1,6 @@
 node_modules/
 .env
-# The knowledge base holds internal ticket data; it lives next to the repo, not in it (see README).
-knowledge/
+# Commit the gzipped ticket index (knowledge/chat-index.csv.gz), not the raw CSV.
+knowledge/chat-index.csv
 *.log
 .DS_Store

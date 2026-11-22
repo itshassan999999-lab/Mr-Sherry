@@ -42,6 +42,7 @@ h3 { margin: 0 0 6px; font-size: 12px; font-weight: 600; text-transform: upperca
 .card.notice { border-color: var(--accent); background: var(--accent-soft); }
 .card.notice p { margin: 0 0 8px; }
 .card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+#tokenInput { width: 100%; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
 .label { display: block; font-weight: 600; margin-bottom: 4px; }
 textarea { width: 100%; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px; resize: vertical; }
 textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }

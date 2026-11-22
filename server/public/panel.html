@@ -45,6 +45,13 @@
 
     <p id="status" class="status" role="status"></p>
 
+    <section id="tokenBox" class="card notice" hidden>
+      <h3>Access token needed</h3>
+      <p>Enter the team's access token once. Chrome remembers it on this profile.</p>
+      <input id="tokenInput" type="password" autocomplete="off" aria-label="Access token">
+      <div class="row"><button id="saveToken" class="btn primary">Save</button></div>
+    </section>
+
     <section id="areaHelp" class="card notice" hidden>
       <h3>Couldn't find the conversation</h3>
       <p>To avoid reading the whole page, the assistant only reads the open chat. Click <b>Point to chat</b>, then click the area that shows the messages. It's remembered for next time.</p>

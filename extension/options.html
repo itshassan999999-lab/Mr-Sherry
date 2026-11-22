@@ -15,11 +15,11 @@
 <body>
   <h1 style="font-size:18px">Reply Assistant settings</h1>
   <label for="serverUrl">Server address</label>
-  <input id="serverUrl" placeholder="http://127.0.0.1:8787">
-  <p class="hint">Where the assistant server runs. Keep http://127.0.0.1:8787 when it runs on this computer.</p>
+  <input id="serverUrl" placeholder="https://mr-sherry-assistant.onrender.com">
+  <p class="hint">Your team's hosted assistant address. Leave the default unless you were given a different one.</p>
   <label for="accessToken">Access token</label>
   <input id="accessToken" type="password" autocomplete="off">
-  <p class="hint">Only if your server has ACCESS_TOKEN set (required for a shared, hosted server).</p>
+  <p class="hint">The team's access token (ACCESS_TOKEN in the hosting dashboard). Entered once; Chrome remembers it.</p>
   <div class="row"><button id="save" class="primary">Save and test</button><span id="msg"></span></div>
   <script src="settings.js"></script>
   <script src="options.js"></script>

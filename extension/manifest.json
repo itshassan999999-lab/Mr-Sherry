@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Support Reply Assistant",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Reads the open client conversation and drafts a sourced reply for the agent to review. It never sends anything.",
   "permissions": [
     "sidePanel",
@@ -11,6 +11,7 @@
   ],
   "host_permissions": [
     "https://app.modalsupport.com/*",
+    "https://*.onrender.com/*",
     "http://127.0.0.1/*",
     "http://localhost/*"
   ],

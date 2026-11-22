@@ -26,6 +26,7 @@
       state.extOrigin = e.origin;
       state.ext = msg.extension || {};
       state.token = msg.token || "";
+      if (!state.token) api("/api/health").then((h) => { if (h.tokenRequired) show("tokenBox", true); }).catch(() => {});
       onExtensionReady();
     } else if (msg.type === "response" && pending.has(msg.id)) {
       const p = pending.get(msg.id); pending.delete(msg.id);
@@ -51,6 +52,7 @@
       body: body ? JSON.stringify(body) : undefined,
     });
     const data = await res.json().catch(() => ({}));
+    if (res.status === 401 && embedded) { show("tokenBox", true); throw new Error("Enter the access token to continue."); }
     if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
     return data;
   }
@@ -270,6 +272,11 @@
     } catch (e) { $("actionNote").textContent = e.message; }
   });
   $("copyPrompt").addEventListener("click", async () => { setStatus((await copyText(state.prompt || "")) ? "Prompt copied." : "Copy failed."); });
+  $("saveToken").addEventListener("click", async () => {
+    const token = $("tokenInput").value.trim();
+    if (!token) return;
+    try { await callExt("saveToken", { token }); } catch (e) { setStatus(e.message, true); }
+  });
   $("checkAnswer").addEventListener("click", async () => {
     try {
       const r = await api("/api/check", { chat: state.chat, answer: $("pastedAnswer").value });
