@@ -30,7 +30,12 @@ export const config = {
   kbDir: findKbDir(),
 
   // api = Anthropic API key | claude-code = your logged-in Claude Code | manual = copy a prompt into claude.ai
-  provider: env.PROVIDER || (env.ANTHROPIC_API_KEY ? "api" : "claude-code"),
+  // groq / gemini = free-tier hosted models | ollama = a model on your own computer
+  // api = Anthropic API key (paid) | claude-code = your logged-in Claude Code | manual = copy a prompt into claude.ai
+  provider: env.PROVIDER || (env.GROQ_API_KEY ? "groq" : env.GEMINI_API_KEY ? "gemini" : env.ANTHROPIC_API_KEY ? "api" : "claude-code"),
+  // For groq / gemini / ollama / openai-compatible: which model, and (optionally) a different endpoint.
+  llmModel: env.LLM_MODEL || "",
+  llmBaseUrl: env.LLM_BASE_URL || "",
   model: env.CLAUDE_MODEL || "claude-opus-5-5",
   effort: env.CLAUDE_EFFORT || "medium",
   cliModel: env.CLAUDE_CLI_MODEL || "",
