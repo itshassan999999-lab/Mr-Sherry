@@ -11,9 +11,11 @@ async function start() {
   settings = await getSettings();
   serverOrigin = new URL(settings.serverUrl).origin;
   $("offline").hidden = true;
+  // The free server sleeps when idle; waking it takes up to a minute.
+  const wakeNote = setTimeout(() => { $("waking").hidden = false; }, 2500);
   try {
     const ctrl = new AbortController();
-    setTimeout(() => ctrl.abort(), 20000); // a hosted server may need a moment to wake up
+    setTimeout(() => ctrl.abort(), 90000);
     const res = await fetch(`${settings.serverUrl}/api/health`, { signal: ctrl.signal, cache: "no-store" });
     if (!res.ok) throw new Error(`Server answered ${res.status}`);
   } catch (e) {
@@ -21,6 +23,9 @@ async function start() {
     $("offline").hidden = false;
     $("app").hidden = true;
     return;
+  } finally {
+    clearTimeout(wakeNote);
+    $("waking").hidden = true;
   }
   $("app").src = `${settings.serverUrl}/panel?ext=${VERSION}`;
   $("app").hidden = false;

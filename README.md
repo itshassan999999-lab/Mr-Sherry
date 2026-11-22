@@ -3,7 +3,7 @@
 A Chrome side panel for our live-chat agents. Open a client chat, click **Suggest reply**, and the panel drafts the next message from our own playbook, topic guides and past tickets, with the sources it used. The agent reviews it, clicks **Insert into reply box** (or Copy) and presses send themselves. **It never sends anything.**
 
 ```
-Chrome extension (thin)            Server (this repo, server/)                         Claude
+Chrome extension (thin)            Server (this repo, server/)                         AI model (free tier)
 reads ONLY the open chat  ──────►  masks personal data                         ──────►  writes a reply from
 inserts the reply                  finds the few matching guide sections                the given sources only
                                    and past tickets, checks the answer  ◄──────
@@ -27,18 +27,23 @@ inserts the reply                  finds the few matching guide sections        
 
 ## How it runs
 
-The server is hosted online (Render), so nothing runs on anyone's computer and restarting a PC changes nothing. Every push to `main` on GitHub redeploys it automatically, and every agent's panel picks up the change on the next click. The extension is a thin shell that loads the panel from the hosted server, so it almost never needs updating.
+It costs nothing to run: Render's free hosting plus Groq's free AI tier. The server is hosted online, so nothing runs on anyone's computer and restarting a PC changes nothing. Every push to `main` on GitHub redeploys it automatically, and every agent's panel picks up the change on the next click. The extension is a thin shell that loads the panel from the hosted server, so it almost never needs updating.
 
 ## One-time setup
 
 ### 1. Host the server (about 10 minutes, once for the whole team)
 
-1. Get an Anthropic API key at https://console.anthropic.com (Settings > API keys). Add a little credit; each suggestion costs about 2 to 3 cents.
-2. Create a Render account at https://render.com and sign in with GitHub. Give Render access to the **Mr-Sherry** repository when asked.
-3. Open https://dashboard.render.com/blueprints, click **New Blueprint Instance**, pick **Mr-Sherry**, and click **Apply**. Render reads `render.yaml` and asks for `ANTHROPIC_API_KEY`: paste the key.
+1. Get a free Groq API key: sign up at https://console.groq.com (no card needed), open **API Keys**, click **Create API Key** and copy it.
+2. Create a free Render account at https://render.com and sign in with GitHub. Give Render access to the **Mr-Sherry** repository when asked.
+3. Open https://dashboard.render.com/blueprints, click **New Blueprint Instance**, pick **Mr-Sherry**, and click **Apply**. Render reads `render.yaml` (free plan) and asks for `GROQ_API_KEY`: paste the key. Don't add a card.
 4. Wait for the deploy to show **Live** (a few minutes). Note the address (normally `https://mr-sherry-assistant.onrender.com`) and copy the generated **ACCESS_TOKEN** from the service's **Environment** tab.
 
-The blueprint uses Render's Starter plan (always on, about $7 a month). The free plan also works but sleeps after 15 idle minutes, so the first suggestion after a break takes about a minute.
+**What "free" means in practice**
+- Render's free plan sleeps after 15 minutes with no use. The first click after a break shows "Waking up the assistant…" for up to a minute; after that it's quick. (Render's Starter plan, about $7 a month, stays awake.)
+- Groq's free tier has per-minute and per-day limits. If the team hits them, the panel says to wait a minute. To add a second free fallback, create a Google Gemini key at https://aistudio.google.com/apikey, add it in Render as `GEMINI_API_KEY`, and set `PROVIDER` to `groq,gemini`. Note: Google may use data sent to its free tier to improve its products (chats are masked first, but keep this in mind).
+- Free open models are less polished than Claude. The grounding checks still apply: answers without sources, invented menu paths or missed escalations are flagged or marked "Not sure".
+
+**AI options** (`PROVIDER` in Render's Environment tab): `groq` (free, default), `gemini` (free tier), `groq,gemini` (free with fallback), `ollama` (a model on your own computer; only works when the server also runs on that computer), `api` (Claude, paid, best quality), `manual` (no AI; paste a prompt into claude.ai yourself). Change the model with `LLM_MODEL` (e.g. any model listed in your Groq console).
 
 ### 2. Install the extension (each agent, once)
 
@@ -69,7 +74,7 @@ Then set the extension's server address to `http://127.0.0.1:8787` in Settings, 
 
 ## Settings
 
-On Render: the service's **Environment** tab (changes redeploy automatically). Locally: `server/.env` (see `.env.example`). The main ones: `PROVIDER`, `CLAUDE_MODEL`, `CLAUDE_EFFORT`, `KB_DIR`, `ACCESS_TOKEN`, and the grounding thresholds `MIN_GUIDE_SCORE` (below it: "not sure" without the AI) and `MAX_GUIDE_SECTIONS` / `MAX_PAST_TICKETS` (how much reference text goes in each request).
+On Render: the service's **Environment** tab (changes redeploy automatically). Locally: `server/.env` (see `.env.example`). The main ones: `PROVIDER`, `GROQ_API_KEY` / `GEMINI_API_KEY`, `LLM_MODEL`, `CLAUDE_MODEL` (paid `api` only), `KB_DIR`, `ACCESS_TOKEN`, and the grounding thresholds `MIN_GUIDE_SCORE` (below it: "not sure" without the AI) and `MAX_GUIDE_SECTIONS` / `MAX_PAST_TICKETS` (how much reference text goes in each request).
 
 ## Privacy
 

@@ -118,9 +118,12 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(SERVER_DIR
     console.error(`HOST=${config.host} makes the server reachable from other machines. Set ACCESS_TOKEN in .env first.`);
     process.exit(1);
   }
-  if (config.provider === "api" && !process.env.ANTHROPIC_API_KEY) {
-    console.error("PROVIDER=api needs ANTHROPIC_API_KEY in .env. Or use PROVIDER=claude-code / PROVIDER=manual.");
-    process.exit(1);
+  for (const name of config.provider.split(",").map((s) => s.trim())) {
+    const needsKey = { api: "ANTHROPIC_API_KEY", groq: "GROQ_API_KEY", gemini: "GEMINI_API_KEY" }[name];
+    if (needsKey && !process.env[needsKey] && !process.env.LLM_API_KEY) {
+      console.error(`PROVIDER ${name} needs ${needsKey}. Add it in the hosting dashboard or server/.env.`);
+      process.exit(1);
+    }
   }
   console.log(`Loading knowledge base from ${config.kbDir} ...`);
   const server = createServer();

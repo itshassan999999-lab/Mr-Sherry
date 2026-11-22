@@ -1,4 +1,4 @@
-// Sends the prompt to Claude. Three ways, chosen with PROVIDER in server/.env.
+// Sends the prompt to the AI, chosen with PROVIDER (server/.env or the hosting dashboard).
 import { spawn } from "node:child_process";
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "./config.js";
@@ -44,10 +44,70 @@ function viaClaudeCode(userPrompt) {
   });
 }
 
-export async function generate(userPrompt) {
-  if (config.provider === "api") return viaApi(userPrompt);
-  if (config.provider === "claude-code") return viaClaudeCode(userPrompt);
-  throw httpError(`Unknown PROVIDER "${config.provider}". Use api, claude-code or manual.`, 500);
+// Free / open-model providers that speak the common "chat completions" format.
+export const OPEN_PROVIDERS = {
+  groq: { baseUrl: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile", keyVar: "GROQ_API_KEY", name: "Groq" },
+  gemini: { baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.5-flash", keyVar: "GEMINI_API_KEY", name: "Google Gemini" },
+  ollama: { baseUrl: "http://127.0.0.1:11434/v1", model: "llama3.1:8b", keyVar: "", name: "Ollama" },
+  "openai-compatible": { baseUrl: "", model: "", keyVar: "LLM_API_KEY", name: "AI service" },
+};
+
+async function viaOpenProvider(name, userPrompt, fetchImpl = fetch) {
+  const p = OPEN_PROVIDERS[name];
+  const baseUrl = (config.llmBaseUrl || p.baseUrl).replace(/\/+$/, "");
+  const model = config.llmModel || p.model;
+  const key = p.keyVar ? process.env[p.keyVar] || process.env.LLM_API_KEY || "" : "";
+  if (!baseUrl || !model) throw httpError("Set LLM_BASE_URL and LLM_MODEL for PROVIDER=openai-compatible.", 500);
+  let res;
+  try {
+    res = await fetchImpl(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(key && { Authorization: `Bearer ${key}` }) },
+      body: JSON.stringify({
+        model,
+        temperature: 0.2, // steady, factual drafts
+        max_tokens: 1500,
+        messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: userPrompt }],
+      }),
+      signal: AbortSignal.timeout(120000),
+    });
+  } catch (e) {
+    throw httpError(name === "ollama"
+      ? "Can't reach Ollama. Is it running on this computer (ollama serve)?"
+      : `Could not reach ${p.name}${e.name === "TimeoutError" ? " (timed out)" : ""}. Try again.`, 502);
+  }
+  let data = await res.json().catch(() => ({}));
+  if (Array.isArray(data)) data = data[0] || {}; // Gemini wraps errors in a list
+  const errMsg = data.error?.message || "";
+  if (res.status === 401 || res.status === 403 || /api key/i.test(errMsg)) throw httpError(`${p.name} rejected the API key. Check ${p.keyVar || "LLM_API_KEY"} in the server settings.`, 500);
+  if (res.status === 429) throw httpError(`${p.name}'s free limit is used up for the moment. Wait a minute and try again.`, 429);
+  if (!res.ok) throw httpError(`${p.name} error ${res.status}: ${errMsg || "unknown"}`.slice(0, 300), res.status >= 500 ? 502 : 500);
+  const text = data.choices?.[0]?.message?.content || "";
+  if (!text.trim()) throw httpError(`${p.name} returned an empty answer. Try again.`, 502);
+  const u = data.usage || {};
+  return { text, model: data.model || model, usage: u.prompt_tokens != null ? { input: u.prompt_tokens, output: u.completion_tokens || 0 } : null };
+}
+
+function viaOne(name, userPrompt, fetchImpl) {
+  if (OPEN_PROVIDERS[name]) return viaOpenProvider(name, userPrompt, fetchImpl);
+  if (name === "api") return viaApi(userPrompt);
+  if (name === "claude-code") return viaClaudeCode(userPrompt);
+  throw httpError(`Unknown PROVIDER "${name}". Use groq, gemini, ollama, api, claude-code or manual.`, 500);
+}
+
+// PROVIDER can list several, e.g. "groq,gemini": if one is busy (free limit reached) or
+// down, the next one is tried. Bad keys and bad requests are not retried.
+export async function generate(userPrompt, { fetchImpl } = {}) {
+  const names = config.provider.split(",").map((s) => s.trim()).filter(Boolean);
+  let lastErr;
+  for (const name of names) {
+    try { return await viaOne(name, userPrompt, fetchImpl); }
+    catch (e) {
+      lastErr = e;
+      if (!(e.status === 429 || e.status === 502 || e.status === 504)) throw e;
+    }
+  }
+  throw lastErr;
 }
 
 export function describeError(err) {
