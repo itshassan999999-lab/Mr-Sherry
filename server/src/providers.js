@@ -51,7 +51,7 @@ export async function generate(userPrompt) {
 }
 
 export function describeError(err) {
-  if (err instanceof Anthropic.AuthenticationError) return { status: 500, message: "The API key is invalid. Check ANTHROPIC_API_KEY in server/.env." };
+  if (err instanceof Anthropic.AuthenticationError) return { status: 500, message: "The API key is invalid. Check ANTHROPIC_API_KEY in the server settings (hosting dashboard or server/.env)." };
   if (err instanceof Anthropic.RateLimitError) return { status: 429, message: "Rate limit reached. Try again in a minute." };
   if (err instanceof Anthropic.APIConnectionError) return { status: 502, message: "Could not reach the AI service. Check the internet connection." };
   if (err instanceof Anthropic.APIError) return { status: 502, message: `AI service error: ${err.message}` };

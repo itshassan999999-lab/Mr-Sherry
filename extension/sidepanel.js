@@ -13,8 +13,8 @@ async function start() {
   $("offline").hidden = true;
   try {
     const ctrl = new AbortController();
-    setTimeout(() => ctrl.abort(), 5000);
-    const res = await fetch(`${settings.serverUrl}/api/health`, { signal: ctrl.signal });
+    setTimeout(() => ctrl.abort(), 20000); // a hosted server may need a moment to wake up
+    const res = await fetch(`${settings.serverUrl}/api/health`, { signal: ctrl.signal, cache: "no-store" });
     if (!res.ok) throw new Error(`Server answered ${res.status}`);
   } catch (e) {
     $("offlineDetail").textContent = `Tried ${settings.serverUrl} (${e.name === "AbortError" ? "no answer" : e.message}).`;
@@ -62,6 +62,10 @@ const handlers = {
   },
   async copy({ text }) { await navigator.clipboard.writeText(String(text || "")); return true; },
   async openSettings() { chrome.runtime.openOptionsPage(); return true; },
+  async saveToken({ token }) {
+    await chrome.storage.sync.set({ accessToken: String(token || "").trim() }); // reloads the panel
+    return true;
+  },
 };
 
 window.addEventListener("message", async (e) => {

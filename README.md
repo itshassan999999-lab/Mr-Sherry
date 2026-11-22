@@ -25,82 +25,69 @@ inserts the reply                  finds the few matching guide sections        
 - Sends about 3,000 tokens per suggestion (the earlier version sent whole guide files, roughly 6 times more).
 - Suggests only when you click. Greetings and off-topic chats are answered without the AI.
 
-## Setup (once per computer)
+## How it runs
 
-You need [Node.js](https://nodejs.org) 18+ and Google Chrome.
+The server is hosted online (Render), so nothing runs on anyone's computer and restarting a PC changes nothing. Every push to `main` on GitHub redeploys it automatically, and every agent's panel picks up the change on the next click. The extension is a thin shell that loads the panel from the hosted server, so it almost never needs updating.
 
-### 1. Get the code and the knowledge base
+## One-time setup
 
-```
-git clone https://github.com/itshassan999999-lab/Mr-Sherry.git
-```
+### 1. Host the server (about 10 minutes, once for the whole team)
 
-The knowledge base (playbook, topic guides, `chat-index.csv`) holds internal ticket data, so it is **not** in this repo. Copy the `knowledge` folder (the one with `playbook.md`, `topics/`, `chat-index.csv`) next to the repo files, so you have `Mr-Sherry/knowledge/playbook.md`. Or set `KB_DIR` in `server/.env` to wherever it is.
+1. Get an Anthropic API key at https://console.anthropic.com (Settings > API keys). Add a little credit; each suggestion costs about 2 to 3 cents.
+2. Create a Render account at https://render.com and sign in with GitHub. Give Render access to the **Mr-Sherry** repository when asked.
+3. Open https://dashboard.render.com/blueprints, click **New Blueprint Instance**, pick **Mr-Sherry**, and click **Apply**. Render reads `render.yaml` and asks for `ANTHROPIC_API_KEY`: paste the key.
+4. Wait for the deploy to show **Live** (a few minutes). Note the address (normally `https://mr-sherry-assistant.onrender.com`) and copy the generated **ACCESS_TOKEN** from the service's **Environment** tab.
 
-Optional: save official help-center articles as `.md` files in `knowledge/official-docs/`. They are searched and cited like the guides ("Official docs").
+The blueprint uses Render's Starter plan (always on, about $7 a month). The free plan also works but sleeps after 15 idle minutes, so the first suggestion after a break takes about a minute.
 
-### 2. Start the server
+### 2. Install the extension (each agent, once)
 
-```
-cd Mr-Sherry/server
-npm install
-cp .env.example .env      (Windows: copy .env.example .env)
-npm start
-```
+1. Download the `extension` folder (or the extension zip) and unzip it somewhere permanent.
+2. Go to `chrome://extensions`, switch on **Developer mode**, click **Load unpacked**, and pick the folder.
+3. Pin **Support Reply Assistant**, open a client chat and click the icon.
+4. The panel asks for the access token once. Paste the ACCESS_TOKEN from step 1. Chrome remembers it.
 
-Pick how replies are generated in `.env` (`PROVIDER`):
-- `claude-code` (default): uses your logged-in [Claude Code](https://code.claude.com), so your Claude plan, no API key. Run `claude` once to log in.
-- `api`: an Anthropic API key, pay per use. Best for a shared server for the whole team.
-- `manual`: no AI call; the panel gives you a prompt to paste into claude.ai, and checks the answer you paste back.
+If your Render address differs from `https://mr-sherry-assistant.onrender.com`, enter it in the extension's **Settings** (gear icon) once.
 
-Leave the window open. You should see `Reply assistant v1.0.0 running at http://127.0.0.1:8787`. Try it without the extension at http://127.0.0.1:8787/panel (paste a chat), or run `npm run try`.
-
-### 3. Install the extension
-
-1. Go to `chrome://extensions`, switch on **Developer mode**.
-2. **Load unpacked** and pick the `extension` folder.
-3. Pin **Support Reply Assistant** (puzzle icon, then the pin).
-4. Open a client chat, click the icon. The side panel opens; click **Suggest reply**.
-
-The first time, check the line "Read N messages from the open conversation" and click **View** to see exactly what was read. If it picked the wrong area, click **Change chat area** and click the message list once; it's remembered. Highlighting messages on the page also works: highlighted text is used instead.
+The first time, check the line "Read N messages from the open conversation" and click **View** to see exactly what was read. If it picked the wrong area, click **Change chat area** and click the message list once; it's remembered. Highlighting messages on the page also works.
 
 ## Updating
 
-- **Panel, wording, rules, knowledge, AI logic:** pull the latest code (`git pull`) and restart the server, or, on a hosted server, it redeploys. Agents just click Suggest again; no extension reinstall.
-- **Knowledge files:** the server notices changed files within a minute and reloads them, no restart needed.
-- **Chat reading for a changed site layout:** edit `server/reader-config.json` (selectors). That's served to the extension too, so no reinstall.
-- **The extension itself** only needs an update when `extension/` changes (rare). The panel shows a banner when an agent's extension is too old. Then: `git pull` and click the reload icon on the extension card in `chrome://extensions`.
+- **Panel, wording, rules, AI logic, chat-reading selectors (`server/reader-config.json`):** push to `main`. Render redeploys in a few minutes; agents do nothing.
+- **Knowledge base (`knowledge/`):** same, push the updated files. `chat-index.csv.gz` is the gzipped ticket index (`gzip -9 -c chat-index.csv > chat-index.csv.gz`).
+- **The extension itself** only changes when `extension/` changes, which should be rare. The panel shows a banner when an agent's copy is too old; they replace the folder and click reload in `chrome://extensions`. To make even that automatic, publish the extension privately (unlisted) on the Chrome Web Store (one-time $5 developer account); Chrome then updates it by itself.
 
-To get zero-touch updates for the extension too, publish it as an unlisted or private item on the Chrome Web Store; Chrome then updates it automatically.
+## Running it on your own computer (developers only)
 
-## Hosting for the whole team (optional)
-
-Running the server on one shared host means agents don't run anything locally:
-1. Deploy `server/` to any Node host that deploys from GitHub (for example Render, Railway or Fly.io), with the knowledge folder available to it and `KB_DIR` pointing at it.
-2. Set `PROVIDER=api`, `ANTHROPIC_API_KEY`, `HOST=0.0.0.0` and a long random `ACCESS_TOKEN`. Use HTTPS.
-3. Each agent opens the extension's **Settings** and enters the server address and access token.
-
-Every push to GitHub then updates every agent's panel.
+```
+cd server
+npm install
+cp .env.example .env      (set PROVIDER, see the file)
+npm start
+```
+Then set the extension's server address to `http://127.0.0.1:8787` in Settings, or open http://127.0.0.1:8787/panel and paste a chat.
 
 ## Settings
 
-All in `server/.env` (see `.env.example`). The main ones: `PROVIDER`, `CLAUDE_MODEL`, `CLAUDE_EFFORT`, `KB_DIR`, `ACCESS_TOKEN`, and the grounding thresholds `MIN_GUIDE_SCORE` (below it: "not sure" without the AI) and `MAX_GUIDE_SECTIONS` / `MAX_PAST_TICKETS` (how much reference text goes in each request).
+On Render: the service's **Environment** tab (changes redeploy automatically). Locally: `server/.env` (see `.env.example`). The main ones: `PROVIDER`, `CLAUDE_MODEL`, `CLAUDE_EFFORT`, `KB_DIR`, `ACCESS_TOKEN`, and the grounding thresholds `MIN_GUIDE_SCORE` (below it: "not sure" without the AI) and `MAX_GUIDE_SECTIONS` / `MAX_PAST_TICKETS` (how much reference text goes in each request).
 
 ## Privacy
 
 - Emails, phone numbers, card numbers, passwords, codes and API keys are masked, and speaker names are replaced with roles, before anything leaves the server. Masking can't catch every name or street address.
 - The server logs timings and token counts only, never chat content.
 - The extension can only read the support site listed in `extension/manifest.json`.
+- The knowledge base in `knowledge/` contains internal ticket excerpts (already masked). Keep this repository **private**.
 
 ## Troubleshooting
 
 | You see | Fix |
 |---|---|
-| "Can't reach the assistant server" | Start it (`npm start` in `server/`), or check the address in Settings. |
+| "Can't reach the assistant server" | Check the service is **Live** in Render, and the address in the extension's Settings. |
+| "Access token needed" | Paste the ACCESS_TOKEN from Render's Environment tab. |
 | "Couldn't find the conversation" | Click **Point to chat** and click the message list, or highlight the messages. |
 | "Open a client chat on … first" | Click the panel while the support site tab is active. |
 | Speakers look swapped | Set `agentSide` or the selectors in `server/reader-config.json` (see `docs/reader-setup.md`). |
-| "Could not run the `claude` command" | Install Claude Code and run `claude` once to log in, or use `PROVIDER=manual`. |
+| "The API key is invalid" | Update ANTHROPIC_API_KEY in Render's Environment tab. |
 | Lots of "Not sure" | Lower `MIN_GUIDE_SCORE` a little, or add the missing fix to the topic guides. |
 
 ## Development

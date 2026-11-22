@@ -4,6 +4,7 @@
 // runs on this machine.
 import fs from "node:fs";
 import path from "node:path";
+import zlib from "node:zlib";
 
 // Topic guides, the topic codes used in chat-index.csv, and words that point to them.
 export const TOPICS = [
@@ -46,46 +47,68 @@ export function tokenize(text) {
     .map(stem);
 }
 
-// Minimal CSV parser: handles quoted fields with commas, quotes and newlines.
-function parseCsv(text) {
-  const rows = [];
-  let row = [], field = "", inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inQuotes) {
-      if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
-      else if (c === '"') inQuotes = false;
-      else field += c;
-    } else if (c === '"') inQuotes = true;
-    else if (c === ",") { row.push(field); field = ""; }
-    else if (c === "\n" || c === "\r") {
-      if (c === "\r" && text[i + 1] === "\n") i++;
-      row.push(field); rows.push(row); row = []; field = "";
-    } else field += c;
+// Minimal CSV parser (quoted fields with commas, quotes and newlines). Yields one row at a
+// time so a large file never sits in memory as a whole table.
+function* parseCsv(text) {
+  const n = text.length;
+  let i = 0;
+  while (i < n) {
+    const row = [];
+    for (;;) {
+      let field;
+      if (text[i] === '"') {
+        let j = i + 1, parts = "";
+        for (;;) {
+          const q = text.indexOf('"', j);
+          if (q === -1) { parts += text.slice(j); j = n; break; }
+          parts += text.slice(j, q);
+          if (text[q + 1] === '"') { parts += '"'; j = q + 2; } else { j = q + 1; break; }
+        }
+        field = parts; i = j;
+      } else {
+        let j = i;
+        while (j < n && text[j] !== "," && text[j] !== "\n" && text[j] !== "\r") j++;
+        field = text.slice(i, j); i = j;
+      }
+      row.push(field);
+      if (text[i] === ",") { i++; continue; }
+      if (text[i] === "\r") i++;
+      if (text[i] === "\n") i++;
+      break;
+    }
+    if (row.length > 1) yield row;
   }
-  if (field || row.length) { row.push(field); rows.push(row); }
-  return rows;
 }
 
 // ---------------------------------------------------------------- BM25 index
 export class Bm25 {
-  constructor(docTokens, { k1 = 1.2, b = 0.75 } = {}) {
+  // docTokens is optional: documents can also be added one at a time with add(), then finish().
+  constructor(docTokens = null, { k1 = 1.2, b = 0.75 } = {}) {
     this.k1 = k1; this.b = b;
-    this.n = docTokens.length;
-    this.len = new Float64Array(this.n);
-    this.postings = new Map(); // term -> [docIndex, termFrequency, ...]
-    let total = 0;
-    docTokens.forEach((tokens, d) => {
-      this.len[d] = tokens.length; total += tokens.length;
-      const tf = new Map();
-      for (const t of tokens) tf.set(t, (tf.get(t) || 0) + 1);
-      for (const [t, f] of tf) {
-        let p = this.postings.get(t);
-        if (!p) this.postings.set(t, (p = []));
-        p.push(d, f);
-      }
-    });
-    this.avgLen = total / Math.max(1, this.n);
+    this.lens = [];
+    this.building = new Map(); // term -> [docIndex, termFrequency, ...] while adding
+    if (docTokens) { for (const t of docTokens) this.add(t); this.finish(); }
+  }
+  add(tokens) {
+    const d = this.lens.length;
+    this.lens.push(tokens.length);
+    const tf = new Map();
+    for (const t of tokens) tf.set(t, (tf.get(t) || 0) + 1);
+    for (const [t, f] of tf) {
+      let p = this.building.get(t);
+      if (!p) this.building.set(t, (p = []));
+      p.push(d, f);
+    }
+  }
+  // Packs the index into typed arrays (much less memory).
+  finish() {
+    this.n = this.lens.length;
+    this.len = Float32Array.from(this.lens);
+    this.avgLen = this.lens.reduce((a, b) => a + b, 0) / Math.max(1, this.n);
+    this.postings = new Map();
+    for (const [t, p] of this.building) this.postings.set(t, Int32Array.from(p));
+    this.building = null; this.lens = null;
+    return this;
   }
   idf(term) {
     const df = (this.postings.get(term)?.length || 0) / 2;
@@ -176,30 +199,38 @@ export function loadKnowledge(kbDir) {
   sections.forEach((s, i) => { s.id = `${s.file.replace(/\.md$/, "")}#${i}`; });
   const sectionIndex = new Bm25(sections.map((s) => [...tokenize(s.heading), ...tokenize(s.heading), ...tokenize(s.text)]));
 
-  let tickets = [];
-  if (fs.existsSync(path.join(kbDir, "chat-index.csv"))) {
-    const [header, ...rows] = parseCsv(read("chat-index.csv")).filter((r) => r.length > 1);
+  // chat-index.csv, or the compressed chat-index.csv.gz kept in the repo.
+  const tickets = [];
+  const ticketIndex = new Bm25();
+  const csvPath = ["chat-index.csv", "chat-index.csv.gz"].map((f) => path.join(kbDir, f)).find((f) => fs.existsSync(f));
+  if (csvPath) {
+    const raw = fs.readFileSync(csvPath);
+    const csv = (csvPath.endsWith(".gz") ? zlib.gunzipSync(raw) : raw).toString("utf8");
+    const rows = parseCsv(csv);
+    const header = rows.next().value || [];
     const col = Object.fromEntries(header.map((h, i) => [h, i]));
     // Answers that are the same canned line in many chats ("Allow me some time...") carry no fix.
+    const key = (a) => { // small numeric hash of the normalized start of the answer
+      const t = a.toLowerCase().replace(/[^a-z]+/g, " ").trim().slice(0, 80);
+      let h = 2166136261;
+      for (let k = 0; k < t.length; k++) h = Math.imul(h ^ t.charCodeAt(k), 16777619);
+      return h;
+    };
     const seen = new Map();
-    const key = (a) => a.toLowerCase().replace(/[^a-z]+/g, " ").trim().slice(0, 80);
-    for (const r of rows) { const a = r[col.agent_answer] || ""; if (a) seen.set(key(a), (seen.get(key(a)) || 0) + 1); }
-    tickets = rows.map((r) => {
+    for (const r of parseCsv(csv)) { const a = r[col.agent_answer] || ""; if (a) seen.set(key(a), (seen.get(key(a)) || 0) + 1); }
+    for (const r of rows) {
       const answer = (r[col.agent_answer] || "").trim();
-      return {
-        record_id: r[col.record_id],
-        date: r[col.date],
-        topic: r[col.topic],
-        csat: r[col.csat] ? Number(r[col.csat]) : null,
-        fcr: r[col.fcr] === "True",
-        question: (r[col.first_question] || "").trim(),
-        answer,
-        unlabeled: answer.startsWith("[speakers not labeled]"),
-        boilerplate: !answer || seen.get(key(answer)) > 25,
-      };
-    }).filter((t) => t.record_id && t.question && t.answer && !t.boilerplate && !(t.csat !== null && t.csat <= 2));
+      const question = (r[col.first_question] || "").trim();
+      const csat = r[col.csat] ? Number(r[col.csat]) : null;
+      if (!r[col.record_id] || !question || !answer || seen.get(key(answer)) > 25 || (csat !== null && csat <= 2)) continue;
+      tickets.push({
+        record_id: r[col.record_id], date: r[col.date], topic: r[col.topic], csat, fcr: r[col.fcr] === "True",
+        question, answer, unlabeled: answer.startsWith("[speakers not labeled]"),
+      });
+      ticketIndex.add([...tokenize(question), ...tokenize(question), ...tokenize(answer)]);
+    }
   }
-  const ticketIndex = new Bm25(tickets.map((t) => [...tokenize(t.question), ...tokenize(t.question), ...tokenize(t.answer)]));
+  ticketIndex.finish();
 
   const stamp = kbStamp(kbDir);
   return { kbDir, stamp, sections, sectionIndex, tickets, ticketIndex };
@@ -209,7 +240,7 @@ export function loadKnowledge(kbDir) {
 export function kbStamp(kbDir) {
   const docsDir = path.join(kbDir, "official-docs");
   const docs = fs.existsSync(docsDir) ? fs.readdirSync(docsDir).map((f) => path.join("official-docs", f)) : [];
-  const files = ["playbook.md", "chat-index.csv", ...TOPICS.map((t) => path.join("topics", t.file)), ...docs];
+  const files = ["playbook.md", "chat-index.csv", "chat-index.csv.gz", ...TOPICS.map((t) => path.join("topics", t.file)), ...docs];
   return files.map((f) => { try { return fs.statSync(path.join(kbDir, f)).mtimeMs; } catch { return 0; } }).join(":");
 }
 
