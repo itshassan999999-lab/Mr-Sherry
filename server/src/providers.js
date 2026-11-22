@@ -54,8 +54,10 @@ export const OPEN_PROVIDERS = {
 
 async function viaOpenProvider(name, userPrompt, fetchImpl = fetch) {
   const p = OPEN_PROVIDERS[name];
-  const baseUrl = (config.llmBaseUrl || p.baseUrl).replace(/\/+$/, "");
-  const model = config.llmModel || p.model;
+  const single = !config.provider.includes(",");
+  const baseUrl = ((single && config.llmBaseUrl) || p.baseUrl || config.llmBaseUrl).replace(/\/+$/, "");
+  // Per-provider model (GEMINI_MODEL, GROQ_MODEL...) so a fallback chain keeps each model right.
+  const model = process.env[`${name.toUpperCase().replace(/-/g, "_")}_MODEL`] || (single ? config.llmModel : "") || p.model;
   const key = p.keyVar ? process.env[p.keyVar] || process.env.LLM_API_KEY || "" : "";
   if (!baseUrl || !model) throw httpError("Set LLM_BASE_URL and LLM_MODEL for PROVIDER=openai-compatible.", 500);
   let res;
@@ -97,8 +99,16 @@ function viaOne(name, userPrompt, fetchImpl) {
 
 // PROVIDER can list several, e.g. "groq,gemini": if one is busy (free limit reached) or
 // down, the next one is tried. Bad keys and bad requests are not retried.
+const KEY_VARS = { api: "ANTHROPIC_API_KEY", groq: "GROQ_API_KEY", gemini: "GEMINI_API_KEY" };
+// Providers in the list whose key is set (a fallback without a key is simply skipped).
+export function usableProviders() {
+  return config.provider.split(",").map((s) => s.trim()).filter(Boolean)
+    .filter((n) => !KEY_VARS[n] || process.env[KEY_VARS[n]] || process.env.LLM_API_KEY);
+}
+
 export async function generate(userPrompt, { fetchImpl } = {}) {
-  const names = config.provider.split(",").map((s) => s.trim()).filter(Boolean);
+  const names = usableProviders();
+  if (!names.length) throw httpError(`No AI key is set for PROVIDER=${config.provider}.`, 500);
   let lastErr;
   for (const name of names) {
     try { return await viaOne(name, userPrompt, fetchImpl); }

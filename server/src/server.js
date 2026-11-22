@@ -10,7 +10,7 @@ import path from "node:path";
 import { config, isLoopback, SERVER_DIR } from "./config.js";
 import { kbStamp, loadKnowledge } from "./knowledge.js";
 import { checkPastedAnswer, suggestReply } from "./suggest.js";
-import { describeError } from "./providers.js";
+import { describeError, usableProviders } from "./providers.js";
 
 const PUBLIC_DIR = path.join(SERVER_DIR, "public");
 const READER_CONFIG = path.join(SERVER_DIR, "reader-config.json");
@@ -118,13 +118,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(SERVER_DIR
     console.error(`HOST=${config.host} makes the server reachable from other machines. Set ACCESS_TOKEN in .env first.`);
     process.exit(1);
   }
-  for (const name of config.provider.split(",").map((s) => s.trim())) {
-    const needsKey = { api: "ANTHROPIC_API_KEY", groq: "GROQ_API_KEY", gemini: "GEMINI_API_KEY" }[name];
-    if (needsKey && !process.env[needsKey] && !process.env.LLM_API_KEY) {
-      console.error(`PROVIDER ${name} needs ${needsKey}. Add it in the hosting dashboard or server/.env.`);
-      process.exit(1);
-    }
+  if (config.provider !== "manual" && !usableProviders().length) {
+    console.error(`PROVIDER=${config.provider} needs an API key (GEMINI_API_KEY, GROQ_API_KEY or ANTHROPIC_API_KEY). Add it in the hosting dashboard or server/.env.`);
+    process.exit(1);
   }
+  console.log(`AI: ${usableProviders().join(" then ")}`);
   console.log(`Loading knowledge base from ${config.kbDir} ...`);
   const server = createServer();
   server.listen(config.port, config.host, () => console.log(`Reply assistant v${config.version} running at http://${config.host}:${config.port} (provider: ${config.provider})`));
